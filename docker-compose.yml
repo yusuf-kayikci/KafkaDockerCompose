@@ -1,0 +1,47 @@
+version : '3'
+services :
+  zookeeper:
+    image: wurstmeister/zookeeper
+    ports:
+      - "2181:2181"
+    hostname: zookeeper
+  kafka:
+    image: wurstmeister/kafka
+    command: [start-kafka.sh]
+    ports:
+      - "9092:9092"
+    hostname: kafka
+    environment:
+      KAFKA_CREATE_TOPICS: "test1:1:1,test2:1:1,test3:1:1,test4:1:1" # topic:partition:replicas
+      KAFKA_ADVERTISED_HOST_NAME: kafka # docker-machine ip
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_PORT: 9092
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - "zookeeper"
+  kafkaui:
+    image : landoop/kafka-topics-ui
+    ports : 
+      - 8000:8000        
+    environment : 
+       KAFKA_REST_PROXY_URL : "kafka-rest:8082"
+       PROXY : "true"
+  kafka-rest:
+    image: nodefluent/kafka-rest:latest
+    ports:
+      - 8082:8082
+    links:
+      - kafka
+      - zookeeper
+    depends_on:
+      - kafka
+      - zookeeper
+    environment:
+      DEBUG: "*"
+  timescale : 
+    image : timescale/timescaledb
+    ports : 
+      - 5432:5432
+    environment : 
+      - POSTGRES_PASSWORD=password
